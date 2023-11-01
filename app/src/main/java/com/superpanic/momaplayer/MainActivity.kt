@@ -1,6 +1,7 @@
 package com.superpanic.momaplayer
 
 import android.annotation.SuppressLint
+import android.content.ContentValues.TAG
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.TextView
@@ -10,6 +11,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
+import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.RawResourceDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -93,7 +95,7 @@ import androidx.media3.ui.PlayerView
 }
 
 private fun playbackStateListener() = object : Player.Listener {
-    override fun onPlaybackStateChagned(playbackState: Int) {
+    override fun onPlaybackStateChanged(playbackState: Int) {
         val stateString: String = when (playbackState) {
             ExoPlayer.STATE_IDLE -> "ExoPlayer.STATE_IDLE"
             ExoPlayer.STATE_BUFFERING -> "ExoPlayer.STATE_BUFFERING"

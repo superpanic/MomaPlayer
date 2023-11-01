@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.superpanic.momaplayer"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.superpanic.momaplayer"
