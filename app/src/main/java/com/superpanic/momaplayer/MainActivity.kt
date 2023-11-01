@@ -11,6 +11,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.RawResourceDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
@@ -59,11 +60,9 @@ import androidx.media3.ui.PlayerView
             .build()
             .also {exoPlayer ->
                 video_view.player = exoPlayer
-
-                val mediaItem = MediaItem.Builder()
-                    .setUri(getString(R.string.media_url_dash))
-                    .setMimeType(MimeTypes.APPLICATION_MPD)
-                    .build()
+                val mediaItem = MediaItem.fromUri(
+                    RawResourceDataSource.buildRawResourceUri(R.raw.sledgehammer)
+                )
                 exoPlayer.setMediaItem(mediaItem)
                 exoPlayer.playWhenReady = playWhenReady
                 exoPlayer.seekTo(currentItem, playbackPosition)
