@@ -19,7 +19,7 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
 
 @UnstableApi class MainActivity : AppCompatActivity() {
-    private val playbackStateListener: Player.Listener = playbackStateListener()
+    private lateinit var playbackStateListener: Player.Listener
     private var player: ExoPlayer? = null
 
     private var playWhenReady = true
@@ -32,6 +32,7 @@ import androidx.media3.ui.PlayerView
         setContentView(R.layout.activity_main)
         video_view = findViewById(R.id.video_view)
         text_view = findViewById(R.id.text_view)
+        playbackStateListener = playbackStateListener(text_view)
     }
     public override fun onStart() {
         super.onStart()
@@ -94,7 +95,7 @@ import androidx.media3.ui.PlayerView
     }
 }
 
-private fun playbackStateListener() = object : Player.Listener {
+private fun playbackStateListener(text_view: TextView) = object : Player.Listener {
     override fun onPlaybackStateChanged(playbackState: Int) {
         val stateString: String = when (playbackState) {
             ExoPlayer.STATE_IDLE -> "ExoPlayer.STATE_IDLE"
@@ -104,5 +105,7 @@ private fun playbackStateListener() = object : Player.Listener {
             else -> "UNKNOWN_STATE"
         }
         Log.d(TAG, "changed state to @stateString")
+        text_view.text = stateString
     }
 }
+
