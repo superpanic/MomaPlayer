@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.ContentValues.TAG
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.KeyEvent
 import android.widget.TextView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -34,6 +35,7 @@ import androidx.media3.ui.PlayerView
         text_view = findViewById(R.id.text_view)
         playbackStateListener = playbackStateListener(text_view)
     }
+
     public override fun onStart() {
         super.onStart()
         initializePlayer()
@@ -93,6 +95,29 @@ import androidx.media3.ui.PlayerView
             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
     }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if(event.repeatCount > 0) return true // block all repeated key presses
+        when (keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP -> {
+                    text_view.text = "Volume up!"
+                    return true // stops the event
+            }
+            KeyEvent.KEYCODE_VOLUME_DOWN -> {
+                text_view.text = "Volume down!"
+                return true // stops the event
+            }
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                text_view.text = "Play/Pause pressed!"
+                return true // stops the event
+            }
+            KeyEvent.KEYCODE_HEADSETHOOK -> {
+                text_view.text = "Headset hook pressed!"
+                return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
+    }
 }
 
 private fun playbackStateListener(text_view: TextView) = object : Player.Listener {
@@ -105,7 +130,7 @@ private fun playbackStateListener(text_view: TextView) = object : Player.Listene
             else -> "UNKNOWN_STATE"
         }
         Log.d(TAG, "changed state to @stateString")
-        text_view.text = stateString
+        //text_view.text = stateString
     }
 }
 
