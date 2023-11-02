@@ -2,6 +2,7 @@ package com.superpanic.momaplayer
 
 import android.annotation.SuppressLint
 import android.content.ContentValues.TAG
+import android.content.Context
 import android.graphics.Matrix
 import android.os.Bundle
 import android.view.KeyEvent
@@ -138,6 +139,24 @@ import com.google.common.collect.ImmutableList
         }
         return super.onKeyDown(keyCode, event)
     }
+
+    fun getResourceFiles(context: Context): List<String> {
+        val fieldList = R.raw::class.java.fields
+        val resourceNames = mutableListOf<String>()
+
+        for (field in fieldList) {
+            try {
+                val resourceId = field.getInt(field)
+                val resourceName = context.resources.getResourceEntryName(resourceId)
+                resourceNames.add(resourceName)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        return resourceNames
+    }
+
 }
 
 private fun playbackStateListener(text_view: TextView) = object : Player.Listener {
