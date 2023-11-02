@@ -2,22 +2,26 @@ package com.superpanic.momaplayer
 
 import android.annotation.SuppressLint
 import android.content.ContentValues.TAG
-import androidx.appcompat.app.AppCompatActivity
+import android.graphics.Matrix
 import android.os.Bundle
 import android.view.KeyEvent
 import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
 import androidx.media3.common.Player
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.RawResourceDataSource
+import androidx.media3.effect.MatrixTransformation
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
+import com.google.common.collect.ImmutableList
+
 
 @UnstableApi class MainActivity : AppCompatActivity() {
     private lateinit var playbackStateListener: Player.Listener
@@ -39,6 +43,8 @@ import androidx.media3.ui.PlayerView
     public override fun onStart() {
         super.onStart()
         initializePlayer()
+        mirrorVideo()
+        hideVideoControllers()
     }
 
     public override fun onResume() {
@@ -74,6 +80,20 @@ import androidx.media3.ui.PlayerView
                 exoPlayer.addListener(playbackStateListener)
                 exoPlayer.prepare()
             }
+    }
+
+    private fun mirrorVideo() {
+        player!!.setVideoEffects(
+            ImmutableList.of<Effect>(
+                MatrixTransformation { presentationTimeUs ->
+                    val transformationMatrix = Matrix()
+                    transformationMatrix.postScale(-1f,1f)
+                    transformationMatrix
+                } as MatrixTransformation))
+    }
+
+    private fun hideVideoControllers() {
+        video_view.useController = false
     }
 
     private fun releasePlayer() {
