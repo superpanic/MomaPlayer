@@ -31,8 +31,20 @@ import com.google.common.collect.ImmutableList
     private var playWhenReady = true
     private var currentItem = 0
     private var playbackPosition = 0L
+    private var currentChannel = 0
     private lateinit var video_view : PlayerView
     private lateinit var text_view : TextView
+
+    data class Channel(
+        var media: List<MediaItem> = emptyList(),
+        var track: Int = 0,
+        var position: Long = 0,
+    )
+
+    private val channel1 = Channel()
+    private val channel2 = Channel()
+    private val channel3 = Channel()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -46,6 +58,7 @@ import com.google.common.collect.ImmutableList
         initializePlayer()
         mirrorVideo()
         hideVideoControllers()
+        loadChannels(this)
     }
 
     public override fun onResume() {
@@ -73,7 +86,7 @@ import com.google.common.collect.ImmutableList
             .also {exoPlayer ->
                 video_view.player = exoPlayer
                 val mediaItem = MediaItem.fromUri(
-                    RawResourceDataSource.buildRawResourceUri(R.raw.sledgehammer)
+                    RawResourceDataSource.buildRawResourceUri(R.raw.mu_sledgehammer)
                 )
                 exoPlayer.setMediaItem(mediaItem)
                 exoPlayer.playWhenReady = playWhenReady
@@ -121,40 +134,105 @@ import com.google.common.collect.ImmutableList
         if(event.repeatCount > 0) return true // block all repeated key presses
         when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_UP -> {
-                    text_view.text = "Volume up!"
-                    return true // stops the event
+                text_view.text = "TV 1"
+                changeChannel(0)
+                return true // stops the event
             }
             KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                text_view.text = "Volume down!"
+                text_view.text = "TV 2"
+                changeChannel(1)
                 return true // stops the event
             }
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                text_view.text = "Play/Pause pressed!"
+                text_view.text = "TV 3"
+                changeChannel(2)
                 return true // stops the event
             }
             KeyEvent.KEYCODE_HEADSETHOOK -> {
-                text_view.text = "Headset hook pressed!"
+                text_view.text = "TV 3"
+                changeChannel(2)
                 return true
             }
         }
         return super.onKeyDown(keyCode, event)
     }
 
-    fun getResourceFiles(context: Context): List<String> {
+    private fun loadChannels(context: Context) {
         val fieldList = R.raw::class.java.fields
-        val resourceNames = mutableListOf<String>()
-
+        val ch1 = mutableListOf<MediaItem>()
+        val ch2 = mutableListOf<MediaItem>()
+        val ch3 = mutableListOf<MediaItem>()
         for (field in fieldList) {
             try {
                 val resourceId = field.getInt(field)
                 val resourceName = context.resources.getResourceEntryName(resourceId)
-                resourceNames.add(resourceName)
+                val first3chars:String = resourceName.take(3)
+                val mi:MediaItem = getLocalMediaItemFromString(resourceName)
+                if(mi != MediaItem.EMPTY) {
+                    when (first3chars) {
+                        "mu_" -> ch1.add(mi) // music video
+                        "do_" -> ch2.add(mi) // documentary
+                        "ad_" -> ch3.add(mi) // advertising
+                    }
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
+        channel1.media = ch1
+        channel2.media = ch2
+        channel3.media = ch3
+    }
 
-        return resourceNames
+    private fun changeChannel(ch: Int) {
+        saveCurrentChannelState(ch)
+        currentChannel = ch
+        when(currentChannel) {
+            0-> {
+                player?.setMediaItems(channel1.media)
+                player?.seekTo(channel1.track, channel1.position)
+            }
+            1-> {
+                player?.setMediaItems(channel2.media)
+                player?.seekTo(channel2.track, channel2.position)
+            }
+            2-> {
+                player?.setMediaItems(channel3.media)
+                player?.seekTo(channel3.track, channel3.position)
+            }
+        }
+    }
+
+    private fun saveCurrentChannelState() {
+        when(currentChannel) {
+            0-> {
+                channel1.track = player?.currentMediaItemIndex!!
+                channel1.position = player?.currentPosition!!
+            }
+            1-> {
+                channel2.track = player?.currentMediaItemIndex!!
+                channel2.position = player?.currentPosition!!
+            }
+            2-> {
+                channel3.track = player?.currentMediaItemIndex!!
+                channel3.position = player?.currentPosition!!
+            }
+        }
+    }
+
+    private fun getLocalMediaItemFromString(file_name: String): MediaItem {
+        val resourceId = this.resources.getIdentifier(
+            /* name = */ file_name,
+            /* defType = */ "raw",
+            /* defPackage = */ this.packageName
+        )
+
+        val mediaItem: MediaItem = if (resourceId != 0) {
+            MediaItem.fromUri(RawResourceDataSource.buildRawResourceUri(resourceId))
+        } else {
+            MediaItem.EMPTY
+        }
+        return mediaItem
     }
 
 }
