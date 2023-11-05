@@ -3,9 +3,11 @@ package com.superpanic.momaplayer
 import android.annotation.SuppressLint
 import android.content.ContentValues.TAG
 import android.content.Context
+import android.graphics.Color
 import android.graphics.Matrix
 import android.os.Bundle
 import android.view.KeyEvent
+import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
@@ -34,6 +36,7 @@ import com.google.common.collect.ImmutableList
     private var currentChannel = -1
     private lateinit var video_view : PlayerView
     private lateinit var text_view : TextView
+    private lateinit var view : FrameLayout
 
     data class Channel(
         var media: List<MediaItem> = emptyList(),
@@ -48,6 +51,8 @@ import com.google.common.collect.ImmutableList
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        view = findViewById(R.id.view)
+        view.setBackgroundColor(Color.BLACK)
         video_view = findViewById(R.id.video_view)
         text_view = findViewById(R.id.text_view)
         playbackStateListener = playbackStateListener(text_view)
@@ -101,6 +106,7 @@ import com.google.common.collect.ImmutableList
             ImmutableList.of<Effect>(
                 MatrixTransformation { presentationTimeUs ->
                     val transformationMatrix = Matrix()
+                    transformationMatrix.postRotate(180f)
                     transformationMatrix.postScale(-1f, 1f)
                     transformationMatrix
                 } as MatrixTransformation))
@@ -170,9 +176,9 @@ import com.google.common.collect.ImmutableList
                 val mi:MediaItem = getLocalMediaItemFromString(resourceName)
                 if(mi != MediaItem.EMPTY) {
                     when (first3chars) {
-                        "mu_" -> ch1.add(mi) // music video
+                        "ad_" -> ch1.add(mi) // music video
                         "do_" -> ch2.add(mi) // documentary
-                        "ad_" -> ch3.add(mi) // advertising
+                        "mu_" -> ch3.add(mi) // advertising
                     }
                 }
             } catch (e: Exception) {
