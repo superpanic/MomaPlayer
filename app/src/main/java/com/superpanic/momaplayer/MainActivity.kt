@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableList
     private var playWhenReady = true
     private var currentItem = 0
     private var playbackPosition = 0L
-    private var currentChannel = 0
+    private var currentChannel = -1
     private lateinit var video_view : PlayerView
     private lateinit var text_view : TextView
 
@@ -86,7 +86,7 @@ import com.google.common.collect.ImmutableList
             .also {exoPlayer ->
                 video_view.player = exoPlayer
                 val mediaItem = MediaItem.fromUri(
-                    RawResourceDataSource.buildRawResourceUri(R.raw.mu_sledgehammer)
+                    RawResourceDataSource.buildRawResourceUri(R.raw.blue_screen)
                 )
                 exoPlayer.setMediaItem(mediaItem)
                 exoPlayer.playWhenReady = playWhenReady
@@ -97,11 +97,11 @@ import com.google.common.collect.ImmutableList
     }
 
     private fun mirrorVideo() {
-        player!!.setVideoEffects(
+        player?.setVideoEffects(
             ImmutableList.of<Effect>(
                 MatrixTransformation { presentationTimeUs ->
                     val transformationMatrix = Matrix()
-                    transformationMatrix.postScale(-1f,1f)
+                    transformationMatrix.postScale(-1f, 1f)
                     transformationMatrix
                 } as MatrixTransformation))
     }
@@ -185,7 +185,7 @@ import com.google.common.collect.ImmutableList
     }
 
     private fun changeChannel(ch: Int) {
-        saveCurrentChannelState(ch)
+        saveCurrentChannelState()
         currentChannel = ch
         when(currentChannel) {
             0-> {
@@ -201,6 +201,7 @@ import com.google.common.collect.ImmutableList
                 player?.seekTo(channel3.track, channel3.position)
             }
         }
+        player?.repeatMode = Player.REPEAT_MODE_ALL
     }
 
     private fun saveCurrentChannelState() {
