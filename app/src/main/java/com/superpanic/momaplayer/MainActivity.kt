@@ -51,6 +51,7 @@ import com.google.common.collect.ImmutableList
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        setBrightness(0.1f)
         view = findViewById(R.id.view)
         view.setBackgroundColor(Color.BLACK)
         video_view = findViewById(R.id.video_view)
@@ -190,6 +191,10 @@ import com.google.common.collect.ImmutableList
         channel3.media = ch3
     }
 
+    private fun nthVideoTrack(n: Int) {
+        player?.seekTo( n, 0L)
+    }
+
     private fun changeChannel(ch: Int) {
         saveCurrentChannelState()
         currentChannel = ch
@@ -208,6 +213,7 @@ import com.google.common.collect.ImmutableList
             }
         }
         player?.repeatMode = Player.REPEAT_MODE_ALL
+        setBrightness(1.0f)
     }
 
     private fun saveCurrentChannelState() {
@@ -227,6 +233,10 @@ import com.google.common.collect.ImmutableList
         }
     }
 
+    private fun getNumberOfMediaItemsInPlaylist(c: Channel): Int {
+        return c.media.size
+    }
+
     private fun getLocalMediaItemFromString(file_name: String): MediaItem {
         val resourceId = this.resources.getIdentifier(
             /* name = */ file_name,
@@ -240,6 +250,13 @@ import com.google.common.collect.ImmutableList
             MediaItem.EMPTY
         }
         return mediaItem
+    }
+
+    private fun setBrightness(brightness: Float) {
+        val window = window
+        val layoutParams = window.attributes
+        layoutParams.screenBrightness = brightness // Range is from 0 to 1
+        window.attributes = layoutParams
     }
 
 }
@@ -257,4 +274,3 @@ private fun playbackStateListener(text_view: TextView) = object : Player.Listene
         //text_view.text = stateString
     }
 }
-
