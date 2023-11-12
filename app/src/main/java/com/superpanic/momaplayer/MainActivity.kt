@@ -26,6 +26,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
 import com.google.common.collect.ImmutableList
+import kotlin.math.abs
 
 
 @UnstableApi class MainActivity : AppCompatActivity() {
@@ -37,6 +38,7 @@ import com.google.common.collect.ImmutableList
     private var currentItem = 0
     private var playbackPosition = 0L
     private var currentChannel = -1
+    private var timeStamp:Long = 0
     private lateinit var video_view : PlayerView
     private lateinit var text_view : TextView
     private lateinit var view : FrameLayout
@@ -70,6 +72,7 @@ import com.google.common.collect.ImmutableList
         mirrorVideo()
         hideVideoControllers()
         loadChannels(this)
+        timeStamp = System.currentTimeMillis()
     }
 
     public override fun onResume() {
@@ -214,20 +217,21 @@ import com.google.common.collect.ImmutableList
         channel1.durations = d1
         channel1.total_duration = l1
         Log.d(TAG,"channel 1 total time: "+ channel1.total_duration+" durations size: " + channel1.durations.size)
+        Log.d(TAG,"durations: " + channel1.durations.toString())
+
 
         channel2.media = ch2
         channel2.durations = d2
         channel2.total_duration = l2
         Log.d(TAG,"channel 2 total time: "+ channel2.total_duration+" durations size: " + channel2.durations.size)
+        Log.d(TAG,"durations: " + channel2.durations.toString())
 
         channel3.media = ch3
         channel3.durations = d3
         channel3.total_duration = l3
         Log.d(TAG,"channel 3 total time: "+ channel3.total_duration+" durations size: " + channel3.durations.size)
-    }
+        Log.d(TAG,"durations: " + channel3.durations.toString())
 
-    private fun nthVideoTrack(n: Int) {
-        player?.seekTo( n, 0L)
     }
 
     private fun changeChannel(ch: Int) {
@@ -251,6 +255,42 @@ import com.google.common.collect.ImmutableList
         setBrightness(1.0f)
     }
 
+    private fun getTotalPlayedMillis(ch : Channel):Long {
+        val track = player?.currentMediaItemIndex
+        val pos = player?.currentPosition
+        var totalPlayedMS = 0L
+        for (i in 0..track!!) {
+            if(i==track) totalPlayedMS = totalPlayedMS+ player?.currentPosition!!
+            else totalPlayedMS=totalPlayedMS + ch.durations[i]
+        }
+        return totalPlayedMS
+    }
+
+    private fun getTrackAndOffsetFromTotalMillis(ch:Channel): Pair<Int, Long> {
+        val time_passed = System.currentTimeMillis() - timeStamp
+        var offset = 0L
+        if(time_passed > ch.total_duration) {
+            offset = time_passed % ch.total_duration
+        } else {
+            offset = ch.total_duration
+        }
+        var track:Int = 0
+
+        while(offset > 0) {
+            offset = offset - ch.durations[track]
+            if(offset<0) {
+                offset = abs(offset)
+                break
+            }
+            if(track+1 < ch.media.size) {
+                track++
+            } else {
+                track = 0
+            }
+        }
+        return Pair(track, offset)
+    }
+
     private fun saveCurrentChannelState() {
         when(currentChannel) {
             0-> {
@@ -266,10 +306,6 @@ import com.google.common.collect.ImmutableList
                 channel3.position = player?.currentPosition!!
             }
         }
-    }
-
-    private fun getNumberOfMediaItemsInPlaylist(c: Channel): Int {
-        return c.media.size
     }
 
     private fun getLocalMediaItemFromString(file_name: String): MediaItem {
