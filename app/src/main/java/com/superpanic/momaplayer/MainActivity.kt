@@ -5,6 +5,8 @@ import android.content.ContentValues.TAG
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Matrix
+import android.media.MediaMetadataRetriever
+import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
 import android.widget.FrameLayout
@@ -27,6 +29,7 @@ import com.google.common.collect.ImmutableList
 
 
 @UnstableApi class MainActivity : AppCompatActivity() {
+    private val TAG = "Moma Player"
     private lateinit var playbackStateListener: Player.Listener
     private var player: ExoPlayer? = null
 
@@ -42,6 +45,8 @@ import com.google.common.collect.ImmutableList
         var media: List<MediaItem> = emptyList(),
         var track: Int = 0,
         var position: Long = 0,
+        var durations: List<Long> = emptyList(),
+        var total_duration: Long = 0,
     )
 
     private val channel1 = Channel()
@@ -169,17 +174,36 @@ import com.google.common.collect.ImmutableList
         val ch1 = mutableListOf<MediaItem>()
         val ch2 = mutableListOf<MediaItem>()
         val ch3 = mutableListOf<MediaItem>()
+        val d1 = mutableListOf<Long>()
+        val d2 = mutableListOf<Long>()
+        val d3 = mutableListOf<Long>()
+        var l1 = 0L
+        var l2 = 0L
+        var l3 = 0L
         for (field in fieldList) {
             try {
                 val resourceId = field.getInt(field)
                 val resourceName = context.resources.getResourceEntryName(resourceId)
+                val length: Long = getVideoDuration(resourceId)
                 val first3chars:String = resourceName.take(3)
                 val mi:MediaItem = getLocalMediaItemFromString(resourceName)
                 if(mi != MediaItem.EMPTY) {
                     when (first3chars) {
-                        "ad_" -> ch1.add(mi) // music video
-                        "do_" -> ch2.add(mi) // documentary
-                        "mu_" -> ch3.add(mi) // advertising
+                        "ad_" -> {
+                            ch1.add(mi)
+                            d1.add(length)
+                            l1=l1+length
+                        } // music video
+                        "do_" -> {
+                            ch2.add(mi)
+                            d2.add(length)
+                            l2=l2+length
+                        } // documentary
+                        "mu_" -> {
+                            ch3.add(mi)
+                            d3.add(length)
+                            l3=l3+length
+                        } // advertising
                     }
                 }
             } catch (e: Exception) {
@@ -187,8 +211,19 @@ import com.google.common.collect.ImmutableList
             }
         }
         channel1.media = ch1
+        channel1.durations = d1
+        channel1.total_duration = l1
+        Log.d(TAG,"channel 1 total time: "+ channel1.total_duration+" durations size: " + channel1.durations.size)
+
         channel2.media = ch2
+        channel2.durations = d2
+        channel2.total_duration = l2
+        Log.d(TAG,"channel 2 total time: "+ channel2.total_duration+" durations size: " + channel2.durations.size)
+
         channel3.media = ch3
+        channel3.durations = d3
+        channel3.total_duration = l3
+        Log.d(TAG,"channel 3 total time: "+ channel3.total_duration+" durations size: " + channel3.durations.size)
     }
 
     private fun nthVideoTrack(n: Int) {
@@ -250,6 +285,15 @@ import com.google.common.collect.ImmutableList
             MediaItem.EMPTY
         }
         return mediaItem
+    }
+
+    private fun getVideoDuration(resourceId: Int): Long {
+        val retriever = MediaMetadataRetriever()
+        val rawVideoUri = "android.resource://${packageName}/${resourceId}"
+        retriever.setDataSource(this, Uri.parse(rawVideoUri))
+        val duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+        retriever.release()
+        return duration?.toLong() ?: 0L
     }
 
     private fun setBrightness(brightness: Float) {
