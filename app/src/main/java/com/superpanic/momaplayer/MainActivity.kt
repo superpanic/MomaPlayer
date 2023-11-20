@@ -1,6 +1,7 @@
 package com.superpanic.momaplayer
 
 import android.annotation.SuppressLint
+import android.content.ContentValues
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.graphics.Color
@@ -54,6 +55,8 @@ import kotlin.math.abs
     private val channel1 = Channel()
     private val channel2 = Channel()
     private val channel3 = Channel()
+
+    private val channels: List<Channel> = listOf(channel1, channel2, channel3)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -150,22 +153,26 @@ import kotlin.math.abs
         when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_UP -> {
                 text_view.text = "TV 1"
-                changeChannel(0)
+//                changeChannel(0)
+                changeChannelAndUpdateTime(0)
                 return true // stops the event
             }
             KeyEvent.KEYCODE_VOLUME_DOWN -> {
                 text_view.text = "TV 2"
-                changeChannel(1)
+//                changeChannel(1)
+                changeChannelAndUpdateTime(1)
                 return true // stops the event
             }
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
                 text_view.text = "TV 3"
-                changeChannel(2)
+//                changeChannel(2)
+                changeChannelAndUpdateTime(2)
                 return true // stops the event
             }
             KeyEvent.KEYCODE_HEADSETHOOK -> {
                 text_view.text = "TV 3"
-                changeChannel(2)
+//                changeChannel(2)
+                changeChannelAndUpdateTime(2)
                 return true
             }
         }
@@ -260,34 +267,46 @@ import kotlin.math.abs
         val pos = player?.currentPosition
         var totalPlayedMS = 0L
         for (i in 0..track!!) {
-            if(i==track) totalPlayedMS = totalPlayedMS+ player?.currentPosition!!
+            if(i==track) totalPlayedMS = totalPlayedMS + player?.currentPosition!!
             else totalPlayedMS=totalPlayedMS + ch.durations[i]
         }
         return totalPlayedMS
     }
 
+    private fun changeChannelAndUpdateTime(ch: Int) {
+        saveCurrentChannelState()
+        val currentChannel: Channel = channels[ch]
+        val trackAndOffset = getTrackAndOffsetFromTotalMillis(currentChannel)
+        Log.d(TAG,
+            "Changed channel to: " + ch
+                    + ", track: " + trackAndOffset.first
+                    + ", offset: " + trackAndOffset.second )
+        player?.setMediaItems(currentChannel.media)
+        player?.seekTo(trackAndOffset.first, trackAndOffset.second)
+        player?.repeatMode = Player.REPEAT_MODE_ALL
+        setBrightness(1.0f)
+    }
+
     private fun getTrackAndOffsetFromTotalMillis(ch:Channel): Pair<Int, Long> {
         val time_passed = System.currentTimeMillis() - timeStamp
+        Log.d(TAG, "Time passed: " + time_passed)
+
+        // offset
         var offset = 0L
         if(time_passed > ch.total_duration) {
             offset = time_passed % ch.total_duration
         } else {
-            offset = ch.total_duration
+            offset = time_passed
         }
-        var track:Int = 0
 
-        while(offset > 0) {
-            offset = offset - ch.durations[track]
-            if(offset<0) {
-                offset = abs(offset)
-                break
-            }
-            if(track+1 < ch.media.size) {
-                track++
-            } else {
-                track = 0
-            }
+        // track
+        var track:Int = 0
+        while(offset > ch.durations[track]) {
+            offset -= ch.durations[track]
+            if(track+1 < ch.media.size) track++
+            else track = 0
         }
+
         return Pair(track, offset)
     }
 
