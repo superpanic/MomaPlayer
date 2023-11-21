@@ -74,6 +74,7 @@ import kotlin.math.abs
         initializePlayer()
         mirrorVideo()
         hideVideoControllers()
+        setBrightness(1.0f)
         loadChannels(this)
         timeStamp = System.currentTimeMillis()
     }
@@ -109,8 +110,7 @@ import kotlin.math.abs
                 exoPlayer.playWhenReady = playWhenReady
                 exoPlayer.seekTo(currentItem, playbackPosition)
                 exoPlayer.addListener(playbackStateListener)
-                exoPlayer.prepare()
-            }
+                exoPlayer.prepare() }
     }
 
     private fun mirrorVideo() {
@@ -292,13 +292,8 @@ import kotlin.math.abs
         Log.d(TAG, "Time passed: " + time_passed)
 
         // offset
-        var offset = 0L
-        if(time_passed > ch.total_duration) {
-            offset = time_passed % ch.total_duration
-        } else {
-            offset = time_passed
-        }
-
+        var offset = time_passed % ch.total_duration
+        
         // track
         var track:Int = 0
         while(offset > ch.durations[track]) {
