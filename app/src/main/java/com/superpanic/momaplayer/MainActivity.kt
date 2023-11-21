@@ -1,7 +1,6 @@
 package com.superpanic.momaplayer
 
 import android.annotation.SuppressLint
-import android.content.ContentValues
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.graphics.Color
@@ -10,6 +9,7 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -27,23 +27,31 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
 import com.google.common.collect.ImmutableList
-import kotlin.math.abs
 
+const val TV1 = 0
+const val TV2 = 1
+const val TV3 = 2
 
 @UnstableApi class MainActivity : AppCompatActivity() {
-    private val TAG = "Moma Player"
-    private lateinit var playbackStateListener: Player.Listener
-    private var player: ExoPlayer? = null
+    private val TAG : String = "Moma Player"
+    private lateinit var playbackStateListener : Player.Listener
+    private var player : ExoPlayer? = null
 
-    private var playWhenReady = true
-    private var currentItem = 0
-    private var playbackPosition = 0L
-    private var currentChannel = -1
-    private var timeStamp:Long = 0
-    private lateinit var video_view : PlayerView
-    private lateinit var text_view : TextView
+    // used for pause, stop, resume
+    private var playWhenReady : Boolean = true
+    private var currentItem : Int = 0
+    private var playbackPosition : Long = 0L
+
+    // used for switching channel
+    private var currentChannel : Int = -1
+    private var timeStamp : Long = 0
+
+    // layout
+    private lateinit var videoView : PlayerView
+    private lateinit var textView : TextView
     private lateinit var view : FrameLayout
 
+    // channel data class
     data class Channel(
         var media: List<MediaItem> = emptyList(),
         var track: Int = 0,
@@ -51,22 +59,21 @@ import kotlin.math.abs
         var durations: List<Long> = emptyList(),
         var total_duration: Long = 0,
     )
-
     private val channel1 = Channel()
     private val channel2 = Channel()
     private val channel3 = Channel()
-
     private val channels: List<Channel> = listOf(channel1, channel2, channel3)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setBrightness(0.1f)
         view = findViewById(R.id.view)
         view.setBackgroundColor(Color.BLACK)
-        video_view = findViewById(R.id.video_view)
-        text_view = findViewById(R.id.text_view)
-        playbackStateListener = playbackStateListener(text_view)
+        videoView = findViewById(R.id.video_view)
+        textView = findViewById(R.id.text_view)
+        playbackStateListener = playbackStateListener(textView)
     }
 
     public override fun onStart() {
@@ -102,7 +109,7 @@ import kotlin.math.abs
             .setTrackSelector(trackSelector)
             .build()
             .also {exoPlayer ->
-                video_view.player = exoPlayer
+                videoView.player = exoPlayer
                 val mediaItem = MediaItem.fromUri(
                     RawResourceDataSource.buildRawResourceUri(R.raw.blue_screen)
                 )
@@ -125,7 +132,7 @@ import kotlin.math.abs
     }
 
     private fun hideVideoControllers() {
-        video_view.useController = false
+        videoView.useController = false
     }
 
     private fun releasePlayer() {
@@ -142,44 +149,40 @@ import kotlin.math.abs
     @SuppressLint("InlinedApi")
     private fun hideSystemUi() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowInsetsControllerCompat(window, video_view).let { controller ->
+        WindowInsetsControllerCompat(window, videoView).let { controller ->
             controller.hide(WindowInsetsCompat.Type.systemBars())
             controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+    override fun onKeyDown(keyCode : Int, event : KeyEvent): Boolean {
         if(event.repeatCount > 0) return true // block all repeated key presses
         when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_UP -> {
-                text_view.text = "TV 1"
-//                changeChannel(0)
-                changeChannelAndUpdateTime(0)
+                textView.text = "TV 1"
+                changeChannelAndUpdateTime(TV1)
                 return true // stops the event
             }
             KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                text_view.text = "TV 2"
-//                changeChannel(1)
-                changeChannelAndUpdateTime(1)
+                textView.text = "TV 2"
+                changeChannelAndUpdateTime(TV2)
                 return true // stops the event
             }
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                text_view.text = "TV 3"
-//                changeChannel(2)
-                changeChannelAndUpdateTime(2)
+                textView.text = "TV 3"
+                changeChannelAndUpdateTime(TV3)
                 return true // stops the event
             }
             KeyEvent.KEYCODE_HEADSETHOOK -> {
-                text_view.text = "TV 3"
-//                changeChannel(2)
-                changeChannelAndUpdateTime(2)
+                textView.text = "TV 3"
+                changeChannelAndUpdateTime(TV3)
                 return true
             }
         }
         return super.onKeyDown(keyCode, event)
     }
 
-    private fun loadChannels(context: Context) {
+    private fun loadChannels(context : Context) {
         val fieldList = R.raw::class.java.fields
         val ch1 = mutableListOf<MediaItem>()
         val ch2 = mutableListOf<MediaItem>()
@@ -241,7 +244,7 @@ import kotlin.math.abs
 
     }
 
-    private fun changeChannel(ch: Int) {
+    private fun changeChannel(ch : Int) {
         saveCurrentChannelState()
         currentChannel = ch
         when(currentChannel) {
@@ -262,7 +265,7 @@ import kotlin.math.abs
         setBrightness(1.0f)
     }
 
-    private fun getTotalPlayedMillis(ch : Channel):Long {
+    private fun getTotalPlayedMillis(ch : Channel) : Long {
         val track = player?.currentMediaItemIndex
         val pos = player?.currentPosition
         var totalPlayedMS = 0L
@@ -273,21 +276,22 @@ import kotlin.math.abs
         return totalPlayedMS
     }
 
-    private fun changeChannelAndUpdateTime(ch: Int) {
+    private fun changeChannelAndUpdateTime(ch : Int) {
         saveCurrentChannelState()
-        val currentChannel: Channel = channels[ch]
-        val trackAndOffset = getTrackAndOffsetFromTotalMillis(currentChannel)
+        currentChannel = ch
+        val cha: Channel = channels[ch]
+        val trackAndOffset = getTrackAndOffsetFromTotalMillis(cha)
         Log.d(TAG,
             "Changed channel to: " + ch
                     + ", track: " + trackAndOffset.first
                     + ", offset: " + trackAndOffset.second )
-        player?.setMediaItems(currentChannel.media)
+        player?.setMediaItems(cha.media)
         player?.seekTo(trackAndOffset.first, trackAndOffset.second)
         player?.repeatMode = Player.REPEAT_MODE_ALL
         setBrightness(1.0f)
     }
 
-    private fun getTrackAndOffsetFromTotalMillis(ch:Channel): Pair<Int, Long> {
+    private fun getTrackAndOffsetFromTotalMillis(ch : Channel) : Pair<Int, Long> {
         val time_passed = System.currentTimeMillis() - timeStamp
         Log.d(TAG, "Time passed: " + time_passed)
 
@@ -322,7 +326,7 @@ import kotlin.math.abs
         }
     }
 
-    private fun getLocalMediaItemFromString(file_name: String): MediaItem {
+    private fun getLocalMediaItemFromString(file_name : String): MediaItem {
         val resourceId = this.resources.getIdentifier(
             /* name = */ file_name,
             /* defType = */ "raw",
@@ -337,7 +341,7 @@ import kotlin.math.abs
         return mediaItem
     }
 
-    private fun getVideoDuration(resourceId: Int): Long {
+    private fun getVideoDuration(resourceId: Int) : Long {
         val retriever = MediaMetadataRetriever()
         val rawVideoUri = "android.resource://${packageName}/${resourceId}"
         retriever.setDataSource(this, Uri.parse(rawVideoUri))
@@ -346,7 +350,7 @@ import kotlin.math.abs
         return duration?.toLong() ?: 0L
     }
 
-    private fun setBrightness(brightness: Float) {
+    private fun setBrightness(brightness : Float) {
         val window = window
         val layoutParams = window.attributes
         layoutParams.screenBrightness = brightness // Range is from 0 to 1
@@ -355,7 +359,7 @@ import kotlin.math.abs
 
 }
 
-private fun playbackStateListener(text_view: TextView) = object : Player.Listener {
+private fun playbackStateListener(text_view : TextView) = object : Player.Listener {
     override fun onPlaybackStateChanged(playbackState: Int) {
         val stateString: String = when (playbackState) {
             ExoPlayer.STATE_IDLE -> "ExoPlayer.STATE_IDLE"
