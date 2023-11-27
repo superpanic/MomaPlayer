@@ -68,7 +68,7 @@ const val TV3 = 2
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        setBrightness(0.1f)
+        setBrightness(1.0f)
         view = findViewById(R.id.view)
         view.setBackgroundColor(Color.BLACK)
         videoView = findViewById(R.id.video_view)
@@ -158,25 +158,20 @@ const val TV3 = 2
     override fun onKeyDown(keyCode : Int, event : KeyEvent): Boolean {
         if(event.repeatCount > 0) return true // block all repeated key presses
         when (keyCode) {
-            KeyEvent.KEYCODE_VOLUME_UP -> {
+            KeyEvent.KEYCODE_VOLUME_UP -> { // R 240 Ohm
                 textView.text = "TV 1"
                 changeChannelAndUpdateTime(TV1)
                 return true // stops the event
             }
-            KeyEvent.KEYCODE_VOLUME_DOWN -> {
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { // R 0 Ohm
                 textView.text = "TV 2"
                 changeChannelAndUpdateTime(TV2)
                 return true // stops the event
             }
-            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+            KeyEvent.KEYCODE_VOLUME_DOWN -> { // R 470 Ohm
                 textView.text = "TV 3"
                 changeChannelAndUpdateTime(TV3)
                 return true // stops the event
-            }
-            KeyEvent.KEYCODE_HEADSETHOOK -> {
-                textView.text = "TV 3"
-                changeChannelAndUpdateTime(TV3)
-                return true
             }
         }
         return super.onKeyDown(keyCode, event)
