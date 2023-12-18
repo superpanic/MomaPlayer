@@ -118,6 +118,7 @@ const val TV3 = 2
                 exoPlayer.seekTo(currentItem, playbackPosition)
                 exoPlayer.addListener(playbackStateListener)
                 exoPlayer.prepare() }
+        player?.repeatMode = Player.REPEAT_MODE_ONE
     }
 
     private fun mirrorVideo() {
