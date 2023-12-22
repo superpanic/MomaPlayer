@@ -157,19 +157,25 @@ const val TV3 = 2
     }
 
     override fun onKeyDown(keyCode : Int, event : KeyEvent): Boolean {
+        // 24 79 25
         if(event.repeatCount > 0) return true // block all repeated key presses
         when (keyCode) {
-            KeyEvent.KEYCODE_VOLUME_UP -> { // R 240 Ohm
+            KeyEvent.KEYCODE_VOLUME_UP -> { // KeyCode 24 Resistance 240 Ohm
                 textView.text = "TV 1"
                 changeChannelAndUpdateTime(TV1)
                 return true // stops the event
             }
-            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { // R 0 Ohm
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> { // KeyCode 85, Resistance 0 Ohm
                 textView.text = "TV 2"
                 changeChannelAndUpdateTime(TV2)
                 return true // stops the event
             }
-            KeyEvent.KEYCODE_VOLUME_DOWN -> { // R 470 Ohm
+            KeyEvent.KEYCODE_HEADSETHOOK -> { // KeyCode 79, Resistance 0 Ohm, Nothing Phone (1)
+                textView.text = "TV 2"
+                changeChannelAndUpdateTime(TV2)
+                return true // stops the event
+            }
+            KeyEvent.KEYCODE_VOLUME_DOWN -> { // KeyCode 25, Resistance 470 Ohm
                 textView.text = "TV 3"
                 changeChannelAndUpdateTime(TV3)
                 return true // stops the event
