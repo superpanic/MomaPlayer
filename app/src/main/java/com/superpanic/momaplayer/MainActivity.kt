@@ -1,8 +1,10 @@
 package com.superpanic.momaplayer
 
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.ContentValues.TAG
 import android.content.Context
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Matrix
 import android.media.MediaMetadataRetriever
@@ -372,5 +374,16 @@ private fun playbackStateListener(text_view : TextView) = object : Player.Listen
         }
         Log.d(TAG, "changed state to @stateString")
         //text_view.text = stateString
+    }
+}
+
+@UnstableApi class BootUpReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        if (Intent.ACTION_BOOT_COMPLETED == intent.action) {
+            val startIntent = Intent(context, MainActivity::class.java)
+            startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            context.startActivity(startIntent)
+        }
     }
 }
