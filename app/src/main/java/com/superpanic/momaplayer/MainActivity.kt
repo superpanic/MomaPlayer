@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Matrix
+import android.media.AudioManager
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
@@ -71,11 +72,18 @@ const val TV3 = 2
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setBrightness(1.0f)
+        maxVol()
         view = findViewById(R.id.view)
         view.setBackgroundColor(Color.BLACK)
         videoView = findViewById(R.id.video_view)
         textView = findViewById(R.id.text_view)
         playbackStateListener = playbackStateListener(textView)
+    }
+
+    public fun maxVol() {
+        val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val desiredVolumeLevel = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, desiredVolumeLevel, 0)
     }
 
     public override fun onStart() {
