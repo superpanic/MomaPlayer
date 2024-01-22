@@ -258,6 +258,7 @@ const val TV3 = 2
 
     private fun changeChannel(ch : Int) {
         saveCurrentChannelState()
+        if (currentChannel==ch) return
         currentChannel = ch
         when(currentChannel) {
             0-> {
