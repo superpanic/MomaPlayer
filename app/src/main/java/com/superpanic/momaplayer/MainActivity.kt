@@ -30,12 +30,16 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
 import com.google.common.collect.ImmutableList
+import android.content.IntentFilter
 
 const val TV1 = 0
 const val TV2 = 1
 const val TV3 = 2
 
 @UnstableApi class MainActivity : AppCompatActivity() {
+
+    private val LOW_BRIGHTNESS = true
+
     private val TAG : String = "Moma Player"
     private lateinit var playbackStateListener : Player.Listener
     private var player : ExoPlayer? = null
@@ -72,7 +76,7 @@ const val TV3 = 2
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setBrightness(1.0f)
-        maxVol()
+        soundOn() // at max volume!
         view = findViewById(R.id.view)
         view.setBackgroundColor(Color.BLACK)
         videoView = findViewById(R.id.video_view)
@@ -80,14 +84,24 @@ const val TV3 = 2
         playbackStateListener = playbackStateListener(textView)
     }
 
-    public fun maxVol() {
+    public fun soundOn() { // at max volume
         val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val desiredVolumeLevel = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, desiredVolumeLevel, 0)
     }
 
+    public fun soundOff() { // set volume to 0
+        val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val desiredVolumeLevel = 0
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, desiredVolumeLevel, 0)
+    }
+
     public override fun onStart() {
         super.onStart()
+
+        val filter = IntentFilter(Intent.ACTION_HEADSET_PLUG)
+        registerReceiver(headsetReceiver, filter)
+
         initializePlayer()
         mirrorVideo()
         hideVideoControllers()
@@ -108,6 +122,7 @@ const val TV3 = 2
 
     public override fun onStop() {
         super.onStop()
+        unregisterReceiver(headsetReceiver)
         releasePlayer()
     }
 
@@ -364,10 +379,40 @@ const val TV3 = 2
     }
 
     private fun setBrightness(brightness : Float) {
+        if(LOW_BRIGHTNESS) {
+            setLowBrightness()
+            return
+        }
         val window = window
         val layoutParams = window.attributes
         layoutParams.screenBrightness = brightness // Range is from 0 to 1
         window.attributes = layoutParams
+    }
+
+    private fun setLowBrightness() {
+        val brightness : Float = 0.5f
+        val window = window
+        val layoutParams = window.attributes
+        layoutParams.screenBrightness = brightness
+        window.attributes = layoutParams
+    }
+
+    private val headsetReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (intent.action == Intent.ACTION_HEADSET_PLUG) {
+                val state = intent.getIntExtra("state", -1)
+                when (state) {
+                    0 -> {
+                        textView.text = "Insert headset!"
+                        soundOff()
+                    }
+                    1 -> {
+                        textView.text = "Headset connected!"
+                        soundOn()
+                    }
+                }
+            }
+        }
     }
 
 }
