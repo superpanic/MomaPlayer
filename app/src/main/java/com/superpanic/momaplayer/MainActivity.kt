@@ -1,6 +1,8 @@
 package com.superpanic.momaplayer
 
 import android.annotation.SuppressLint
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.ContentValues.TAG
 import android.content.Context
@@ -31,10 +33,14 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
 import com.google.common.collect.ImmutableList
 import android.content.IntentFilter
+import androidx.core.content.ContextCompat.getSystemService
+import java.util.Calendar
 
 const val TV1 = 0
 const val TV2 = 1
 const val TV3 = 2
+const val SLEEP_HOUR = 21
+const val WAKE_HOUR = 9
 
 @UnstableApi class MainActivity : AppCompatActivity() {
 
@@ -82,15 +88,42 @@ const val TV3 = 2
         videoView = findViewById(R.id.video_view)
         textView = findViewById(R.id.text_view)
         playbackStateListener = playbackStateListener(textView)
+        setAlarm()
     }
 
-    public fun soundOn() { // at max volume
+    private fun setAlarm() {
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(this, MyAlarmReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0)
+
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+
+            if (get(Calendar.HOUR_OF_DAY) >= SLEEP_HOUR) {
+                // If current time is 9 PM or later, set for 9 AM next day
+                set(Calendar.HOUR_OF_DAY, WAKE_HOUR)
+                add(Calendar.DATE, 1)
+            } else if (get(Calendar.HOUR_OF_DAY) < WAKE_HOUR) {
+                // If current time is before 9 AM, set for 9 AM today
+                set(Calendar.HOUR_OF_DAY, WAKE_HOUR)
+            } else {
+                // Else, set for 9 PM today
+                set(Calendar.HOUR_OF_DAY, SLEEP_HOUR)
+            }
+        }
+
+        alarmManager.set(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
+    }
+
+    private fun soundOn() { // at max volume
         val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val desiredVolumeLevel = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, desiredVolumeLevel, 0)
     }
 
-    public fun soundOff() { // set volume to 0
+    private fun soundOff() { // set volume to 0
         val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val desiredVolumeLevel = 0
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, desiredVolumeLevel, 0)
@@ -440,4 +473,16 @@ private fun playbackStateListener(text_view : TextView) = object : Player.Listen
             context.startActivity(startIntent)
         }
     }
+}
+
+class MyAlarmReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        // Your function to run when the alarm triggers
+        doSomething()
+    }
+}
+
+private fun doSomething() {
+    // Function logic here
+
 }
