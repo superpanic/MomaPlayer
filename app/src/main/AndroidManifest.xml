@@ -31,7 +31,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
-        <receiver android:name=".MyAlarmReceiver"/>
+        <receiver android:name=".MyAlarmReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="com.superpanic.momaplayer.ALARM_ACTION" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

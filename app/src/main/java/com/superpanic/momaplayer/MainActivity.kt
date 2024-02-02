@@ -24,7 +24,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.RawResourceDataSource
 import androidx.media3.effect.MatrixTransformation
@@ -33,8 +32,9 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
 import com.google.common.collect.ImmutableList
 import android.content.IntentFilter
-import androidx.core.content.ContextCompat.getSystemService
 import java.util.Calendar
+import android.util.Log
+import android.widget.Toast
 
 const val TV1 = 0
 const val TV2 = 1
@@ -44,7 +44,8 @@ const val WAKE_HOUR = 9
 
 @UnstableApi class MainActivity : AppCompatActivity() {
 
-    private val LOW_BRIGHTNESS = true
+    private val BRIGHTNESS = 1.0f
+    private val SOUNDLEVEL = 0.25f
 
     private val TAG : String = "Moma Player"
     private lateinit var playbackStateListener : Player.Listener
@@ -79,6 +80,7 @@ const val WAKE_HOUR = 9
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setBrightness(1.0f)
@@ -88,15 +90,25 @@ const val WAKE_HOUR = 9
         videoView = findViewById(R.id.video_view)
         textView = findViewById(R.id.text_view)
         playbackStateListener = playbackStateListener(textView)
+
         setAlarm()
     }
 
     private fun setAlarm() {
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(this, MyAlarmReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, 0)
+        intent.action = "com.superpanic.momaplayer.ALARM_ACTION" // This action must match the one in the manifest.
+        val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
-        val calendar = Calendar.getInstance().apply {
+//      val t: Calendar = getNextWakeOrSleepEvent()
+        val t: Calendar = getNextSeconds(5)
+
+        alarmManager.set(AlarmManager.RTC_WAKEUP, t.timeInMillis, pendingIntent)
+        toaster(this,"Alarm set!")
+    }
+
+    private fun getNextWakeOrSleepEvent(): Calendar {
+        val tm = Calendar.getInstance().apply {
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
@@ -113,14 +125,44 @@ const val WAKE_HOUR = 9
                 set(Calendar.HOUR_OF_DAY, SLEEP_HOUR)
             }
         }
+        return tm
+    }
 
-        alarmManager.set(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
+    public fun rest() {
+        setBrightness(0.1f)
+        soundOff()
+    }
+
+    public fun rise() {
+        setBrightness(BRIGHTNESS)
+        soundOn()
+    }
+
+    private fun getNextMinute(): Calendar {
+        val nextMinute = Calendar.getInstance().apply {
+            add(Calendar.MINUTE, 1)
+        }
+        return nextMinute
+    }
+
+    private fun getNextSeconds(s: Int): Calendar {
+        val nextSecs = Calendar.getInstance().apply {
+            add(Calendar.SECOND, s)
+        }
+        return nextSecs
+    }
+
+    private fun getNextHour(): Calendar {
+        val nextHour = Calendar.getInstance().apply {
+            add(Calendar.HOUR, 1)
+        }
+        return nextHour
     }
 
     private fun soundOn() { // at max volume
         val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val desiredVolumeLevel = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, desiredVolumeLevel, 0)
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (desiredVolumeLevel*SOUNDLEVEL).toInt(), 0)
     }
 
     private fun soundOff() { // set volume to 0
@@ -412,10 +454,6 @@ const val WAKE_HOUR = 9
     }
 
     private fun setBrightness(brightness : Float) {
-        if(LOW_BRIGHTNESS) {
-            setLowBrightness()
-            return
-        }
         val window = window
         val layoutParams = window.attributes
         layoutParams.screenBrightness = brightness // Range is from 0 to 1
@@ -478,11 +516,19 @@ private fun playbackStateListener(text_view : TextView) = object : Player.Listen
 class MyAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         // Your function to run when the alarm triggers
-        doSomething()
+        doSomething(context)
     }
 }
 
-private fun doSomething() {
+private fun doSomething(context: Context) {
     // Function logic here
+    toaster(context, "Alarm triggered!")
+    
+//    Log.d(TAG, "Sleep or wake up event triggered!")
+}
 
+private fun toaster(context: Context, text: String) {
+    val duration = Toast.LENGTH_LONG
+    val toast = Toast.makeText(context, text, duration) // in Activity
+    toast.show()
 }
