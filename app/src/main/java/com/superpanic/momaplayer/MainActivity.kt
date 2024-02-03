@@ -85,7 +85,7 @@ const val SOUNDLEVEL = 0.25f
 
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        setBrightness(1.0f)
+        setBrightness(BRIGHTNESS)
         soundOn() // at max volume!
         view = findViewById(R.id.view)
         view.setBackgroundColor(Color.BLACK)
@@ -131,7 +131,7 @@ const val SOUNDLEVEL = 0.25f
     }
 
     public fun slumber() {
-        setBrightness(0.1f)
+        setBrightness(0f) // black
         soundOff()
         isAwake = false
         player?.pause()
@@ -188,7 +188,7 @@ const val SOUNDLEVEL = 0.25f
         initializePlayer()
         mirrorVideo()
         hideVideoControllers()
-        setBrightness(1.0f)
+        setBrightness(BRIGHTNESS)
         loadChannels(this)
         timeStamp = System.currentTimeMillis()
     }
@@ -374,7 +374,7 @@ const val SOUNDLEVEL = 0.25f
             }
         }
         player?.repeatMode = Player.REPEAT_MODE_ALL
-        setBrightness(1.0f)
+        setBrightness(BRIGHTNESS)
     }
 
     private fun getTotalPlayedMillis(ch : Channel) : Long {
@@ -389,6 +389,7 @@ const val SOUNDLEVEL = 0.25f
     }
 
     private fun changeChannelAndUpdateTime(ch : Int) {
+        if(!isAwake) wakeup()
         saveCurrentChannelState()
         currentChannel = ch
         val cha: Channel = channels[ch]
@@ -400,7 +401,7 @@ const val SOUNDLEVEL = 0.25f
         player?.setMediaItems(cha.media)
         player?.seekTo(trackAndOffset.first, trackAndOffset.second)
         player?.repeatMode = Player.REPEAT_MODE_ALL
-        setBrightness(1.0f)
+        setBrightness(BRIGHTNESS)
     }
 
     private fun getTrackAndOffsetFromTotalMillis(ch : Channel) : Pair<Int, Long> {
