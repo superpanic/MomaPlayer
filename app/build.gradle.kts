@@ -45,4 +45,5 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:$mediaVersion")
     implementation("androidx.media3:media3-ui:$mediaVersion")
     implementation("androidx.media3:media3-exoplayer-dash:$mediaVersion")
+    implementation("org.greenrobot:eventbus:3.3.1")
 }

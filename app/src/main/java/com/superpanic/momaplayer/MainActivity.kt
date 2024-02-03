@@ -35,21 +35,23 @@ import android.content.IntentFilter
 import java.util.Calendar
 import android.util.Log
 import android.widget.Toast
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
 
 const val TV1 = 0
 const val TV2 = 1
 const val TV3 = 2
 const val SLEEP_HOUR = 21
 const val WAKE_HOUR = 9
+const val BRIGHTNESS = 1.0f
+const val SOUNDLEVEL = 0.25f
 
 @UnstableApi class MainActivity : AppCompatActivity() {
-
-    private val BRIGHTNESS = 1.0f
-    private val SOUNDLEVEL = 0.25f
-
-    private val TAG : String = "Moma Player"
+    private val TAG : String = "DebugMomaPlayer"
     private lateinit var playbackStateListener : Player.Listener
     private var player : ExoPlayer? = null
+    private var isAwake = true
 
     // used for pause, stop, resume
     private var playWhenReady : Boolean = true
@@ -128,14 +130,18 @@ const val WAKE_HOUR = 9
         return tm
     }
 
-    public fun rest() {
+    public fun slumber() {
         setBrightness(0.1f)
         soundOff()
+        isAwake = false
+        player?.pause()
     }
 
-    public fun rise() {
+    public fun wakeup() {
         setBrightness(BRIGHTNESS)
         soundOn()
+        isAwake = true
+        player?.play()
     }
 
     private fun getNextMinute(): Calendar {
@@ -174,6 +180,8 @@ const val WAKE_HOUR = 9
     public override fun onStart() {
         super.onStart()
 
+        EventBus.getDefault().register(this)
+
         val filter = IntentFilter(Intent.ACTION_HEADSET_PLUG)
         registerReceiver(headsetReceiver, filter)
 
@@ -196,9 +204,10 @@ const val WAKE_HOUR = 9
     }
 
     public override fun onStop() {
-        super.onStop()
+        EventBus.getDefault().unregister(this)
         unregisterReceiver(headsetReceiver)
         releasePlayer()
+        super.onStop()
     }
 
     private fun initializePlayer() {
@@ -486,6 +495,21 @@ const val WAKE_HOUR = 9
         }
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    fun onAlarmEvent(event: AlarmEvent) {
+        alarmTriggered()
+    }
+
+    private fun alarmTriggered() {
+        // Function logic here
+        toaster(this, "Alarm triggered!")
+        when (isAwake) {
+            true -> slumber()
+            else -> wakeup()
+        }
+        setAlarm()
+    }
+
 }
 
 private fun playbackStateListener(text_view : TextView) = object : Player.Listener {
@@ -516,15 +540,9 @@ private fun playbackStateListener(text_view : TextView) = object : Player.Listen
 class MyAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         // Your function to run when the alarm triggers
-        doSomething(context)
+//        doSomething(context)
+        EventBus.getDefault().post(AlarmEvent())
     }
-}
-
-private fun doSomething(context: Context) {
-    // Function logic here
-    toaster(context, "Alarm triggered!")
-    
-//    Log.d(TAG, "Sleep or wake up event triggered!")
 }
 
 private fun toaster(context: Context, text: String) {
@@ -532,3 +550,5 @@ private fun toaster(context: Context, text: String) {
     val toast = Toast.makeText(context, text, duration) // in Activity
     toast.show()
 }
+
+class AlarmEvent
