@@ -102,8 +102,8 @@ const val SOUNDLEVEL = 0.25f
         intent.action = "com.superpanic.momaplayer.ALARM_ACTION" // This action must match the one in the manifest.
         val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
-//      val t: Calendar = getNextWakeOrSleepEvent()
-        val t: Calendar = getNextSeconds(5)
+        val t: Calendar = getNextWakeOrSleepEvent()
+//        val t: Calendar = getNextSeconds(15)
 
         alarmManager.set(AlarmManager.RTC_WAKEUP, t.timeInMillis, pendingIntent)
         toaster(this,"Alarm set!")
