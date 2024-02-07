@@ -42,8 +42,8 @@ import org.greenrobot.eventbus.ThreadMode
 const val TV1 = 0
 const val TV2 = 1
 const val TV3 = 2
-const val SLEEP_HOUR = 21
-const val WAKE_HOUR = 9
+const val SLEEP_HOUR = 19
+const val WAKE_HOUR = 7
 const val BRIGHTNESS = 1.0f
 const val SOUNDLEVEL = 0.25f
 
@@ -540,8 +540,6 @@ private fun playbackStateListener(text_view : TextView) = object : Player.Listen
 
 class MyAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        // Your function to run when the alarm triggers
-//        doSomething(context)
         EventBus.getDefault().post(AlarmEvent())
     }
 }
