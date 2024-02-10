@@ -44,8 +44,8 @@ const val TV2 = 1
 const val TV3 = 2
 const val SLEEP_HOUR = 19
 const val WAKE_HOUR = 7
-const val BRIGHTNESS = 1.0f
-const val SOUNDLEVEL = 0.25f
+const val BRIGHTNESS = 0.75f
+const val SOUNDLEVEL = 1.00f
 
 @UnstableApi class MainActivity : AppCompatActivity() {
     private val TAG : String = "DebugMomaPlayer"
@@ -103,7 +103,7 @@ const val SOUNDLEVEL = 0.25f
         val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
 
         val t: Calendar = getNextWakeOrSleepEvent()
-//        val t: Calendar = getNextSeconds(15)
+//            val t: Calendar = getNextSeconds(10)
 
         alarmManager.set(AlarmManager.RTC_WAKEUP, t.timeInMillis, pendingIntent)
         toaster(this,"Alarm set!")
