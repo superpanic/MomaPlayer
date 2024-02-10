@@ -46,6 +46,7 @@ const val SLEEP_HOUR = 19
 const val WAKE_HOUR = 7
 const val BRIGHTNESS = 0.75f
 const val SOUNDLEVEL = 1.00f
+const val MIRROR_VIDEO = false
 
 @UnstableApi class MainActivity : AppCompatActivity() {
     private val TAG : String = "DebugMomaPlayer"
@@ -231,6 +232,10 @@ const val SOUNDLEVEL = 1.00f
     }
 
     private fun mirrorVideo() {
+        if(MIRROR_VIDEO == false) {
+            toaster(this, "Mirror Effect turned off!")
+            return
+        }
         player?.setVideoEffects(
             ImmutableList.of<Effect>(
                 MatrixTransformation { presentationTimeUs ->
