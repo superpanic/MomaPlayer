@@ -299,6 +299,27 @@ const val MIRROR_VIDEO = false
     }
 
     private fun loadChannels(context : Context) {
+
+        // TODO: load videos from user video files folder instead, then the video library can be updated without recompiling the app.
+        /*
+
+        // Assuming you have already requested and been granted the permission.
+        // The permissions you might need are READ_EXTERNAL_STORAGE for reading the files.
+        // For Android 10 (API level 29) or higher, consider using scoped storage to access
+        // media files in a way that respects user privacy.
+
+            // Access a video file from MediaStore
+            val videoUri: Uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+
+            // Set up VideoView
+            val videoView: VideoView = findViewById(R.id.yourVideoViewId)
+            videoView.setVideoURI(videoUri)
+
+            // Play the video
+            videoView.start()
+
+         */
+
         val fieldList = R.raw::class.java.fields
         val ch1 = mutableListOf<MediaItem>()
         val ch2 = mutableListOf<MediaItem>()
@@ -309,6 +330,7 @@ const val MIRROR_VIDEO = false
         var l1 = 0L
         var l2 = 0L
         var l3 = 0L
+
         for (field in fieldList) {
             try {
                 val resourceId = field.getInt(field)
