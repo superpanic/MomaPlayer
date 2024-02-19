@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.content.ContentUris
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
@@ -32,12 +33,20 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
 import com.google.common.collect.ImmutableList
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.provider.MediaStore
 import java.util.Calendar
 import android.util.Log
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import android.Manifest
+import android.os.Handler
+import android.os.Looper
+import androidx.activity.result.contract.ActivityResultContracts
 
 const val TV1 = 0
 const val TV2 = 1
@@ -45,11 +54,16 @@ const val TV3 = 2
 const val SLEEP_HOUR = 19
 const val WAKE_HOUR = 7
 const val BRIGHTNESS = 0.75f
-const val SOUNDLEVEL = 1.00f
+const val SOUNDLEVEL = 0.10f
 const val MIRROR_VIDEO = false
 
 @UnstableApi class MainActivity : AppCompatActivity() {
-    private val TAG : String = "DebugMomaPlayer"
+
+    companion object {
+        private const val MY_PERMISSIONS_REQUEST_READ_MEDIA_VIDEO = 1
+    }
+
+    private val TAG : String = "Debug:MomaPlayer"
     private lateinit var playbackStateListener : Player.Listener
     private var player : ExoPlayer? = null
     private var isAwake = true
@@ -186,11 +200,9 @@ const val MIRROR_VIDEO = false
         val filter = IntentFilter(Intent.ACTION_HEADSET_PLUG)
         registerReceiver(headsetReceiver, filter)
 
-        initializePlayer()
-        mirrorVideo()
-        hideVideoControllers()
         setBrightness(BRIGHTNESS)
-        loadChannels(this)
+        requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO) // request permission to load videos from external storage
+
         timeStamp = System.currentTimeMillis()
     }
 
@@ -229,6 +241,8 @@ const val MIRROR_VIDEO = false
                 exoPlayer.addListener(playbackStateListener)
                 exoPlayer.prepare() }
         player?.repeatMode = Player.REPEAT_MODE_ONE
+        hideVideoControllers()
+        mirrorVideo()
     }
 
     private fun mirrorVideo() {
@@ -298,27 +312,8 @@ const val MIRROR_VIDEO = false
         return super.onKeyDown(keyCode, event)
     }
 
-    private fun loadChannels(context : Context) {
-
-        // TODO: load videos from user video files folder instead, then the video library can be updated without recompiling the app.
-        /*
-
-        // Assuming you have already requested and been granted the permission.
-        // The permissions you might need are READ_EXTERNAL_STORAGE for reading the files.
-        // For Android 10 (API level 29) or higher, consider using scoped storage to access
-        // media files in a way that respects user privacy.
-
-            // Access a video file from MediaStore
-            val videoUri: Uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-
-            // Set up VideoView
-            val videoView: VideoView = findViewById(R.id.yourVideoViewId)
-            videoView.setVideoURI(videoUri)
-
-            // Play the video
-            videoView.start()
-
-         */
+    private fun loadChannelsFromLocalStorage(context : Context) {
+        initializePlayer()
 
         val fieldList = R.raw::class.java.fields
         val ch1 = mutableListOf<MediaItem>()
@@ -381,6 +376,133 @@ const val MIRROR_VIDEO = false
         Log.d(TAG,"durations: " + channel3.durations.toString())
 
     }
+
+    /*
+    private fun requestPermissionAndReadExternalStorage() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO)
+            != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_MEDIA_VIDEO)) {
+                // Explain to the user why you need this permission
+            } else {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_MEDIA_VIDEO), MY_PERMISSIONS_REQUEST_READ_MEDIA_VIDEO)
+                // TODO: this path does not load channels!
+            }
+        } else {
+            // Permission has already been granted
+            loadChannelsFromExternalStorage(this)
+        }
+
+    }
+
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == MY_PERMISSIONS_REQUEST_READ_MEDIA_VIDEO) {
+            if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                // Permission was granted, load videos
+                loadChannelsFromExternalStorage(this)
+            } else {
+                // Permission was denied
+                toaster(this, "Permission denied. Cannot load videos.")
+            }
+        }
+
+    }
+
+*/
+
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                // Permission is granted. Continue with accessing video files.
+                loadChannelsFromExternalStorage(this)
+                Log.d(TAG,"Permission to load external videos granted.")
+            } else {
+                // Permission is denied. Explain to the user that the feature is unavailable.
+                toaster(this, "Permission denied. Cannot load videos.")
+                toaster(this, "Delete and re-install app and try again.")
+            }
+        }
+
+    private fun loadChannelsFromExternalStorage(context : Context) {
+        initializePlayer()
+
+        val ch1 = mutableListOf<MediaItem>()
+        val ch2 = mutableListOf<MediaItem>()
+        val ch3 = mutableListOf<MediaItem>()
+        val d1 = mutableListOf<Long>()
+        val d2 = mutableListOf<Long>()
+        val d3 = mutableListOf<Long>()
+        var l1: Long = 0L
+        var l2: Long = 0L
+        var l3: Long = 0L
+
+        val projection = arrayOf(MediaStore.Video.Media._ID, MediaStore.Video.Media.DISPLAY_NAME, MediaStore.Video.Media.SIZE, MediaStore.Video.Media.DURATION)
+        val cursor = contentResolver.query(
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            null,
+            null,
+            null
+        )
+
+        cursor?.use {
+            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+            val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+            val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idColumn)
+                val name = cursor.getString(nameColumn)
+                val size = cursor.getInt(sizeColumn)
+                val duration = cursor.getLong(durationColumn)
+                val contentUri: Uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
+                Log.d(TAG, "Found video: $name, Duration: $duration, Uri: $contentUri")
+
+                val first3chars:String = name.take(3)
+                val mediaItem: MediaItem = MediaItem.fromUri(contentUri)
+                if(mediaItem!=MediaItem.EMPTY) {
+                    when (first3chars) {
+                        "ad_" -> { // advertising
+                            ch1.add(mediaItem)
+                            d1.add(duration)
+                            l1=l1+duration
+                        }
+                        "do_" -> { // documentary
+                            ch2.add(mediaItem)
+                            d2.add(duration)
+                            l2=l2+duration
+                        }
+                        "mu_" -> { // music videos
+                            ch3.add(mediaItem)
+                            d3.add(duration)
+                            l3=l3+duration
+                        }
+                    }
+                }
+            }
+
+            channel1.media = ch1
+            channel1.durations = d1
+            channel1.total_duration = l1
+            Log.d(TAG,"channel 1 total time: "+ channel1.total_duration+" durations size: " + channel1.durations.size)
+            Log.d(TAG,"durations: " + channel1.durations.toString())
+
+
+            channel2.media = ch2
+            channel2.durations = d2
+            channel2.total_duration = l2
+            Log.d(TAG,"channel 2 total time: "+ channel2.total_duration+" durations size: " + channel2.durations.size)
+            Log.d(TAG,"durations: " + channel2.durations.toString())
+
+            channel3.media = ch3
+            channel3.durations = d3
+            channel3.total_duration = l3
+            Log.d(TAG,"channel 3 total time: "+ channel3.total_duration+" durations size: " + channel3.durations.size)
+            Log.d(TAG,"durations: " + channel3.durations.toString())
+        }
+    }
+
 
     private fun changeChannel(ch : Int) {
         saveCurrentChannelState()
@@ -572,7 +694,7 @@ class MyAlarmReceiver : BroadcastReceiver() {
 }
 
 private fun toaster(context: Context, text: String) {
-    val duration = Toast.LENGTH_LONG
+    val duration = Toast.LENGTH_SHORT
     val toast = Toast.makeText(context, text, duration) // in Activity
     toast.show()
 }

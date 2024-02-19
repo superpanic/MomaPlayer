@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.superpanic.momaplayer"
-        minSdk = 24
+        minSdk = 33
         targetSdk = 33
         versionCode = 1
         versionName = "1.0"
@@ -32,13 +32,15 @@ android {
     }
 }
 
-val mediaVersion = "1.1.1"
+val mediaVersion = "1.2.1"
+val activityVersion = "1.8.2"
+
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.10.0")
+    implementation("com.google.android.material:material:1.11.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.media3:media3-effect:1.1.1")
+    implementation("androidx.media3:media3-effect:1.2.1")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
@@ -46,4 +48,7 @@ dependencies {
     implementation("androidx.media3:media3-ui:$mediaVersion")
     implementation("androidx.media3:media3-exoplayer-dash:$mediaVersion")
     implementation("org.greenrobot:eventbus:3.3.1")
+    implementation("androidx.activity:activity-ktx:$activityVersion")
 }
+
+
