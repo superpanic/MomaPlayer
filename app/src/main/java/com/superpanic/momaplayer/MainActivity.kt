@@ -1,5 +1,6 @@
 package com.superpanic.momaplayer
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -8,16 +9,21 @@ import android.content.ContentUris
 import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.Matrix
 import android.media.AudioManager
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
+import android.util.Log
 import android.view.KeyEvent
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -32,21 +38,10 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
 import com.google.common.collect.ImmutableList
-import android.content.IntentFilter
-import android.content.pm.PackageManager
-import android.provider.MediaStore
-import java.util.Calendar
-import android.util.Log
-import android.widget.Toast
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
-import android.Manifest
-import android.os.Handler
-import android.os.Looper
-import androidx.activity.result.contract.ActivityResultContracts
+import java.util.Calendar
 
 const val TV1 = 0
 const val TV2 = 1
@@ -54,7 +49,7 @@ const val TV3 = 2
 const val SLEEP_HOUR = 19
 const val WAKE_HOUR = 7
 const val BRIGHTNESS = 0.75f
-const val SOUNDLEVEL = 0.10f
+const val SOUND_LEVEL = 0.60f
 const val MIRROR_VIDEO = false
 
 @UnstableApi class MainActivity : AppCompatActivity() {
@@ -109,6 +104,36 @@ const val MIRROR_VIDEO = false
         playbackStateListener = playbackStateListener(textView)
 
         setAlarm()
+    }
+
+    public override fun onStart() {
+        super.onStart()
+
+        EventBus.getDefault().register(this)
+        val filter = IntentFilter(Intent.ACTION_HEADSET_PLUG)
+        registerReceiver(headsetReceiver, filter)
+        requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO) // request permission to load videos from external storage
+
+        setBrightness(BRIGHTNESS)
+
+        timeStamp = System.currentTimeMillis()
+    }
+
+    public override fun onResume() {
+        super.onResume()
+        hideSystemUi()
+    }
+
+    public override fun onPause() {
+        super.onPause()
+        releasePlayer()
+    }
+
+    public override fun onStop() {
+        EventBus.getDefault().unregister(this)
+        unregisterReceiver(headsetReceiver)
+        releasePlayer()
+        super.onStop()
     }
 
     private fun setAlarm() {
@@ -183,44 +208,13 @@ const val MIRROR_VIDEO = false
     private fun soundOn() { // at max volume
         val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val desiredVolumeLevel = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (desiredVolumeLevel*SOUNDLEVEL).toInt(), 0)
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (desiredVolumeLevel * SOUND_LEVEL).toInt(), 0)
     }
 
     private fun soundOff() { // set volume to 0
         val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         val desiredVolumeLevel = 0
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, desiredVolumeLevel, 0)
-    }
-
-    public override fun onStart() {
-        super.onStart()
-
-        EventBus.getDefault().register(this)
-
-        val filter = IntentFilter(Intent.ACTION_HEADSET_PLUG)
-        registerReceiver(headsetReceiver, filter)
-
-        setBrightness(BRIGHTNESS)
-        requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO) // request permission to load videos from external storage
-
-        timeStamp = System.currentTimeMillis()
-    }
-
-    public override fun onResume() {
-        super.onResume()
-        hideSystemUi()
-    }
-
-    public override fun onPause() {
-        super.onPause()
-        releasePlayer()
-    }
-
-    public override fun onStop() {
-        EventBus.getDefault().unregister(this)
-        unregisterReceiver(headsetReceiver)
-        releasePlayer()
-        super.onStop()
     }
 
     private fun initializePlayer() {
@@ -376,40 +370,6 @@ const val MIRROR_VIDEO = false
         Log.d(TAG,"durations: " + channel3.durations.toString())
 
     }
-
-    /*
-    private fun requestPermissionAndReadExternalStorage() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_VIDEO)
-            != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_MEDIA_VIDEO)) {
-                // Explain to the user why you need this permission
-            } else {
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_MEDIA_VIDEO), MY_PERMISSIONS_REQUEST_READ_MEDIA_VIDEO)
-                // TODO: this path does not load channels!
-            }
-        } else {
-            // Permission has already been granted
-            loadChannelsFromExternalStorage(this)
-        }
-
-    }
-
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == MY_PERMISSIONS_REQUEST_READ_MEDIA_VIDEO) {
-            if ((grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                // Permission was granted, load videos
-                loadChannelsFromExternalStorage(this)
-            } else {
-                // Permission was denied
-                toaster(this, "Permission denied. Cannot load videos.")
-            }
-        }
-
-    }
-
-*/
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
