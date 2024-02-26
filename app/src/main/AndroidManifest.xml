@@ -35,7 +35,8 @@
         </receiver>
         <receiver android:name=".MyAlarmReceiver" android:exported="true">
             <intent-filter>
-                <action android:name="com.superpanic.momaplayer.ALARM_ACTION" />
+                <action android:name="com.superpanic.momaplayer.WAKEUP" />
+                <action android:name="com.superpanic.momaplayer.SLEEP" />
             </intent-filter>
         </receiver>
     </application>

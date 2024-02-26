@@ -47,9 +47,9 @@ const val TV1 = 0
 const val TV2 = 1
 const val TV3 = 2
 const val SLEEP_HOUR = 19
-const val WAKE_HOUR = 7
+const val WAKEUP_HOUR = 7
 const val BRIGHTNESS = 0.75f
-const val SOUND_LEVEL = 0.60f
+const val SOUND_LEVEL = 0.50f
 const val MIRROR_VIDEO = false
 
 @UnstableApi class MainActivity : AppCompatActivity() {
@@ -103,7 +103,7 @@ const val MIRROR_VIDEO = false
         textView = findViewById(R.id.text_view)
         playbackStateListener = playbackStateListener(textView)
 
-        setAlarm()
+        setAlarms()
     }
 
     public override fun onStart() {
@@ -136,38 +136,31 @@ const val MIRROR_VIDEO = false
         super.onStop()
     }
 
-    private fun setAlarm() {
+    private fun setAlarms() {
+        // wake alarm
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(this, MyAlarmReceiver::class.java)
-        intent.action = "com.superpanic.momaplayer.ALARM_ACTION" // This action must match the one in the manifest.
-        val pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-
-        val t: Calendar = getNextWakeOrSleepEvent()
-//            val t: Calendar = getNextSeconds(10)
-
-        alarmManager.set(AlarmManager.RTC_WAKEUP, t.timeInMillis, pendingIntent)
-        toaster(this,"Alarm set!")
-    }
-
-    private fun getNextWakeOrSleepEvent(): Calendar {
-        val tm = Calendar.getInstance().apply {
+        val wakeUpIntent = Intent(this, MyAlarmReceiver::class.java).apply {
+            action = "com.example.myapp.WAKEUP"
+        }
+        val wakeUpPendingIntent = PendingIntent.getBroadcast(this, 0, wakeUpIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val wakeUpCalendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, WAKEUP_HOUR)
             set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-
-            if (get(Calendar.HOUR_OF_DAY) >= SLEEP_HOUR) {
-                // If current time is 9 PM or later, set for 9 AM next day
-                set(Calendar.HOUR_OF_DAY, WAKE_HOUR)
-                add(Calendar.DATE, 1)
-            } else if (get(Calendar.HOUR_OF_DAY) < WAKE_HOUR) {
-                // If current time is before 9 AM, set for 9 AM today
-                set(Calendar.HOUR_OF_DAY, WAKE_HOUR)
-            } else {
-                // Else, set for 9 PM today
-                set(Calendar.HOUR_OF_DAY, SLEEP_HOUR)
-            }
         }
-        return tm
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, wakeUpCalendar.timeInMillis, AlarmManager.INTERVAL_DAY, wakeUpPendingIntent)
+
+        // Sleep alarm
+        val sleepIntent = Intent(this, MyAlarmReceiver::class.java).apply {
+            action = "com.example.myapp.SLEEP"
+        }
+        val sleepPendingIntent = PendingIntent.getBroadcast(this, 1, sleepIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val sleepCalendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, SLEEP_HOUR)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+        }
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, sleepCalendar.timeInMillis, AlarmManager.INTERVAL_DAY, sleepPendingIntent)
     }
 
     public fun slumber() {
@@ -398,6 +391,10 @@ const val MIRROR_VIDEO = false
         var l3: Long = 0L
 
         val projection = arrayOf(MediaStore.Video.Media._ID, MediaStore.Video.Media.DISPLAY_NAME, MediaStore.Video.Media.SIZE, MediaStore.Video.Media.DURATION)
+        if(projection.isEmpty()) {
+            toaster(this,"No videos found!")
+            return
+        }
         val cursor = contentResolver.query(
             MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
             projection,
@@ -463,7 +460,6 @@ const val MIRROR_VIDEO = false
         }
     }
 
-
     private fun changeChannel(ch : Int) {
         saveCurrentChannelState()
         if (currentChannel==ch) return
@@ -502,6 +498,10 @@ const val MIRROR_VIDEO = false
         saveCurrentChannelState()
         currentChannel = ch
         val cha: Channel = channels[ch]
+        if(cha.media.isEmpty()) {
+            toaster(this,"No video files in channel!")
+            return
+        } // media list is empty!
         val trackAndOffset = getTrackAndOffsetFromTotalMillis(cha)
         Log.d(TAG,
             "Changed channel to: " + ch
@@ -607,17 +607,10 @@ const val MIRROR_VIDEO = false
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onAlarmEvent(event: AlarmEvent) {
-        alarmTriggered()
-    }
-
-    private fun alarmTriggered() {
-        // Function logic here
-        toaster(this, "Alarm triggered!")
-        when (isAwake) {
-            true -> slumber()
-            else -> wakeup()
+        when(event.type) {
+            AlarmType.SLEEP -> slumber()
+            AlarmType.WAKEUP -> wakeup()
         }
-        setAlarm()
     }
 
 }
@@ -631,8 +624,7 @@ private fun playbackStateListener(text_view : TextView) = object : Player.Listen
             ExoPlayer.STATE_ENDED -> "ExoPlayer.STATE_ENDED"
             else -> "UNKNOWN_STATE"
         }
-        Log.d(TAG, "changed state to @stateString")
-        //text_view.text = stateString
+        Log.d(TAG, "changed state to $stateString")
     }
 }
 
@@ -649,7 +641,16 @@ private fun playbackStateListener(text_view : TextView) = object : Player.Listen
 
 class MyAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        EventBus.getDefault().post(AlarmEvent())
+        when (intent.action) {
+            "com.example.myapp.WAKEUP" -> {
+                EventBus.getDefault().post(AlarmEvent(AlarmType.WAKEUP))
+                // Code to resume video playback and brighten the display
+            }
+            "com.example.myapp.SLEEP" -> {
+                EventBus.getDefault().post(AlarmEvent(AlarmType.SLEEP))
+                // Code to stop video playback and dim the display
+            }
+        }
     }
 }
 
@@ -659,4 +660,7 @@ private fun toaster(context: Context, text: String) {
     toast.show()
 }
 
-class AlarmEvent
+class AlarmEvent(val type:AlarmType)
+enum class AlarmType {
+    WAKEUP, SLEEP
+}
