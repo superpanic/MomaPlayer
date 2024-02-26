@@ -125,14 +125,16 @@ const val MIRROR_VIDEO = false
         val audioManager: AudioManager = getSystemService(AUDIO_SERVICE) as AudioManager
         val audioDevices: Array<AudioDeviceInfo> =
             audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
-        var isWiredHeadphonesConnected = false
 
+        var isWiredHeadphonesConnected = false
         for (device in audioDevices) {
-            if (device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES) {
+            if (device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || device.type == AudioDeviceInfo.TYPE_USB_HEADSET) {
                 isWiredHeadphonesConnected = true
                 break // Stop the loop once we found a wired headphone
             }
         }
+        
+        if(audioManager.isWiredHeadsetOn()) isWiredHeadphonesConnected = true
 
         if (isWiredHeadphonesConnected) {
             soundOn()
