@@ -12,6 +12,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.Matrix
+import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -115,8 +116,31 @@ const val MIRROR_VIDEO = false
         requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO) // request permission to load videos from external storage
 
         setBrightness(BRIGHTNESS)
+        checkForWiredHeadSet()
 
         timeStamp = System.currentTimeMillis()
+    }
+
+    private fun checkForWiredHeadSet() {
+        val audioManager: AudioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+        val audioDevices: Array<AudioDeviceInfo> =
+            audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+        var isWiredHeadphonesConnected = false
+
+        for (device in audioDevices) {
+            if (device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES) {
+                isWiredHeadphonesConnected = true
+                break // Stop the loop once we found a wired headphone
+            }
+        }
+
+        if (isWiredHeadphonesConnected) {
+            soundOn()
+            toaster(this, "Wired headset is connected!")
+        } else {
+            soundOff()
+            toaster(this, "Audio off (no headset)!")
+        }
     }
 
     public override fun onResume() {
@@ -234,7 +258,6 @@ const val MIRROR_VIDEO = false
 
     private fun mirrorVideo() {
         if(MIRROR_VIDEO == false) {
-            toaster(this, "Mirror Effect turned off!")
             return
         }
         player?.setVideoEffects(
