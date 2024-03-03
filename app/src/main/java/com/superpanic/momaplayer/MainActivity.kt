@@ -42,13 +42,15 @@ import com.google.common.collect.ImmutableList
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
+
 
 const val TV1 = 0
 const val TV2 = 1
 const val TV3 = 2
 const val SLEEP_HOUR = 19
-const val WAKEUP_HOUR = 7
 const val BRIGHTNESS = 0.75f
 const val SOUND_LEVEL = 0.50f
 const val MIRROR_VIDEO = false
@@ -59,7 +61,7 @@ const val MIRROR_VIDEO = false
         private const val MY_PERMISSIONS_REQUEST_READ_MEDIA_VIDEO = 1
     }
 
-    private val TAG : String = "Debug:MomaPlayer"
+    private val TAG : String = "DEBUG:MOMA"
     private lateinit var playbackStateListener : Player.Listener
     private var player : ExoPlayer? = null
     private var isAwake = true
@@ -104,7 +106,8 @@ const val MIRROR_VIDEO = false
         textView = findViewById(R.id.text_view)
         playbackStateListener = playbackStateListener(textView)
 
-        setAlarms()
+        //setAlarms()
+        setRecurringAlarm()
     }
 
     public override fun onStart() {
@@ -116,33 +119,25 @@ const val MIRROR_VIDEO = false
         requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO) // request permission to load videos from external storage
 
         setBrightness(BRIGHTNESS)
-        checkForWiredHeadSet()
+        if(checkForWiredHeadSet()) soundOn()
+        else soundOff()
 
         timeStamp = System.currentTimeMillis()
     }
 
-    private fun checkForWiredHeadSet() {
+    private fun checkForWiredHeadSet() : Boolean {
         val audioManager: AudioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-        val audioDevices: Array<AudioDeviceInfo> =
-            audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+        val audioDevices: Array<AudioDeviceInfo> = audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
 
         var isWiredHeadphonesConnected = false
         for (device in audioDevices) {
             if (device.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || device.type == AudioDeviceInfo.TYPE_USB_HEADSET) {
                 isWiredHeadphonesConnected = true
-                break // Stop the loop once we found a wired headphone
+                break
             }
         }
-        
         if(audioManager.isWiredHeadsetOn()) isWiredHeadphonesConnected = true
-
-        if (isWiredHeadphonesConnected) {
-            soundOn()
-            toaster(this, "Wired headset is connected!")
-        } else {
-            soundOff()
-            toaster(this, "Audio off (no headset)!")
-        }
+        return isWiredHeadphonesConnected
     }
 
     public override fun onResume() {
@@ -162,34 +157,24 @@ const val MIRROR_VIDEO = false
         super.onStop()
     }
 
-    private fun setAlarms() {
-        // wake alarm
+    private fun setRecurringAlarm() {
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val wakeUpIntent = Intent(this, MyAlarmReceiver::class.java).apply {
-            action = "com.example.myapp.WAKEUP"
-        }
-        val wakeUpPendingIntent = PendingIntent.getBroadcast(this, 0, wakeUpIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        val wakeUpCalendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, WAKEUP_HOUR)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-        }
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, wakeUpCalendar.timeInMillis, AlarmManager.INTERVAL_DAY, wakeUpPendingIntent)
-
-        // Sleep alarm
+        // sleep alarm
         val sleepIntent = Intent(this, MyAlarmReceiver::class.java).apply {
-            action = "com.example.myapp.SLEEP"
+            action = "com.superpanic.momaplayer.SLEEP"
         }
         val sleepPendingIntent = PendingIntent.getBroadcast(this, 1, sleepIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        val sleepCalendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, SLEEP_HOUR)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-        }
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, sleepCalendar.timeInMillis, AlarmManager.INTERVAL_DAY, sleepPendingIntent)
+        val sleepCalendar = getNextEvening()
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, sleepCalendar.timeInMillis, AlarmManager.INTERVAL_HALF_DAY, sleepPendingIntent)
+
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val dateString = dateFormat.format(sleepCalendar.time)
+        Log.d(TAG, "sleep: " + dateString)
     }
 
-    public fun slumber() {
+    public fun sleep() {
+        textView.text = "Sleeping!"
+        Log.d(TAG, "Go to sleep!")
         setBrightness(0f) // black
         soundOff()
         isAwake = false
@@ -197,15 +182,39 @@ const val MIRROR_VIDEO = false
     }
 
     public fun wakeup() {
+        textView.text = "Awake!"
+        Log.d(TAG, "Time to wake up!")
         setBrightness(BRIGHTNESS)
-        soundOn()
+        if(checkForWiredHeadSet()) soundOn()
         isAwake = true
         player?.play()
     }
 
-    private fun getNextMinute(): Calendar {
+    public fun getNextEvening() : Calendar {
+        val eveningCalendar = Calendar.getInstance().apply {
+            // Assuming you want to set it to 10:30 PM (22:30) today
+            val currentHour = get(Calendar.HOUR_OF_DAY)
+            val targetHour = SLEEP_HOUR
+            val targetMinute = 0
+            val targetSecond = 0
+
+            if (currentHour >= targetHour) {
+                // If current time is past 22:30, set for the next day
+                add(Calendar.DATE, 1)
+            }
+
+            set(Calendar.HOUR_OF_DAY, targetHour)
+            set(Calendar.MINUTE, targetMinute)
+            set(Calendar.SECOND, targetSecond)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return eveningCalendar
+    }
+
+    private fun getNextMinutes(m: Int, s: Int=0): Calendar {
         val nextMinute = Calendar.getInstance().apply {
-            add(Calendar.MINUTE, 1)
+            add(Calendar.MINUTE, m)
+            add(Calendar.SECOND, s)
         }
         return nextMinute
     }
@@ -630,12 +639,15 @@ const val MIRROR_VIDEO = false
         }
     }
 
+    fun isEvening(): Boolean {
+        val currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        return currentHour >= SLEEP_HOUR // Considering evening as 5 PM onwards
+    }
+
     @Subscribe(threadMode = ThreadMode.MAIN)
     fun onAlarmEvent(event: AlarmEvent) {
-        when(event.type) {
-            AlarmType.SLEEP -> slumber()
-            AlarmType.WAKEUP -> wakeup()
-        }
+        if(isEvening()) sleep()
+        else wakeup()
     }
 
 }
@@ -667,12 +679,8 @@ private fun playbackStateListener(text_view : TextView) = object : Player.Listen
 class MyAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
-            "com.example.myapp.WAKEUP" -> {
-                EventBus.getDefault().post(AlarmEvent(AlarmType.WAKEUP))
-                // Code to resume video playback and brighten the display
-            }
-            "com.example.myapp.SLEEP" -> {
-                EventBus.getDefault().post(AlarmEvent(AlarmType.SLEEP))
+            "com.superpanic.momaplayer.SLEEP" -> {
+                EventBus.getDefault().post(AlarmEvent())
                 // Code to stop video playback and dim the display
             }
         }
@@ -685,7 +693,4 @@ private fun toaster(context: Context, text: String) {
     toast.show()
 }
 
-class AlarmEvent(val type:AlarmType)
-enum class AlarmType {
-    WAKEUP, SLEEP
-}
+class AlarmEvent()
