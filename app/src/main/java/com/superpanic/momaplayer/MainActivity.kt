@@ -52,7 +52,7 @@ const val TV2 = 1
 const val TV3 = 2
 const val SLEEP_HOUR = 19
 const val BRIGHTNESS = 0.75f
-const val SOUND_LEVEL = 0.50f
+const val SOUND_LEVEL = 0.35f
 const val MIRROR_VIDEO = false
 
 @UnstableApi class MainActivity : AppCompatActivity() {
@@ -99,7 +99,6 @@ const val MIRROR_VIDEO = false
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         setBrightness(BRIGHTNESS)
-        soundOn() // at max volume!
         view = findViewById(R.id.view)
         view.setBackgroundColor(Color.BLACK)
         videoView = findViewById(R.id.video_view)
@@ -119,8 +118,7 @@ const val MIRROR_VIDEO = false
         requestPermissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO) // request permission to load videos from external storage
 
         setBrightness(BRIGHTNESS)
-        if(checkForWiredHeadSet()) soundOn()
-        else soundOff()
+        soundCheck()
 
         timeStamp = System.currentTimeMillis()
     }
@@ -233,10 +231,15 @@ const val MIRROR_VIDEO = false
         return nextHour
     }
 
+    private fun soundCheck() {
+        if(checkForWiredHeadSet()) soundOn()
+        else soundOff()
+    }
+
     private fun soundOn() { // at max volume
         val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        val desiredVolumeLevel = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (desiredVolumeLevel * SOUND_LEVEL).toInt(), 0)
+        val desiredVolumeLevel = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) * SOUND_LEVEL
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, desiredVolumeLevel.toInt(), 0)
     }
 
     private fun soundOff() { // set volume to 0
@@ -514,6 +517,7 @@ const val MIRROR_VIDEO = false
         }
         player?.repeatMode = Player.REPEAT_MODE_ALL
         setBrightness(BRIGHTNESS)
+        soundCheck()
     }
 
     private fun getTotalPlayedMillis(ch : Channel) : Long {
@@ -545,6 +549,7 @@ const val MIRROR_VIDEO = false
         player?.seekTo(trackAndOffset.first, trackAndOffset.second)
         player?.repeatMode = Player.REPEAT_MODE_ALL
         setBrightness(BRIGHTNESS)
+        soundCheck()
     }
 
     private fun getTrackAndOffsetFromTotalMillis(ch : Channel) : Pair<Int, Long> {
