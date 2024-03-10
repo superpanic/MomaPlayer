@@ -51,7 +51,7 @@ const val TV1 = 0
 const val TV2 = 1
 const val TV3 = 2
 const val SLEEP_HOUR = 19
-const val BRIGHTNESS = 0.75f
+const val BRIGHTNESS = 0.9f // 0.75 works fine!
 const val SOUND_LEVEL = 0.35f
 const val MIRROR_VIDEO = false
 
@@ -170,8 +170,15 @@ const val MIRROR_VIDEO = false
         Log.d(TAG, "sleep: " + dateString)
     }
 
+    public fun getCurrentTimeAsString(): String {
+        val currentDate = Calendar.getInstance()
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val dateString = dateFormat.format(currentDate.time)
+        return dateString
+    }
+
     public fun sleep() {
-        textView.text = "Sleeping!"
+        textView.text = "Sleeping " + getCurrentTimeAsString()
         Log.d(TAG, "Go to sleep!")
         setBrightness(0f) // black
         soundOff()
@@ -180,7 +187,7 @@ const val MIRROR_VIDEO = false
     }
 
     public fun wakeup() {
-        textView.text = "Awake!"
+        textView.text = "Awake " + getCurrentTimeAsString()
         Log.d(TAG, "Time to wake up!")
         setBrightness(BRIGHTNESS)
         if(checkForWiredHeadSet()) soundOn()
