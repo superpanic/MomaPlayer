@@ -165,6 +165,12 @@ const val MIRROR_VIDEO = false
         val sleepCalendar = getNextEvening()
         alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, sleepCalendar.timeInMillis, AlarmManager.INTERVAL_HALF_DAY, sleepPendingIntent)
 
+        /*
+        alarmManager.setInexactRepeating(int type,
+            long triggerAtMillis,
+            long intervalMillis,
+            PendingIntent operation)
+         */
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val dateString = dateFormat.format(sleepCalendar.time)
         Log.d(TAG, "sleep: " + dateString)
