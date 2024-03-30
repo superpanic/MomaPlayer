@@ -47,13 +47,20 @@ import java.util.Calendar
 import java.util.Locale
 
 
-const val TV1 = 0
-const val TV2 = 1
-const val TV3 = 2
-const val SLEEP_HOUR = 19
+const val TV1 : Int = 0
+const val TV2 : Int = 1
+const val TV3 : Int = 2
+
+const val WAKE_HOUR : Int = 7
+const val SLEEP_HOUR : Int = 19
+
 const val BRIGHTNESS = 0.9f // 0.75 works fine!
 const val SOUND_LEVEL = 0.35f
 const val MIRROR_VIDEO = false
+
+const val MILLIS_30_MIN : Long = 1000 * 60 * 30
+const val MILLIS_20_MIN : Long = 1000 * 60 * 20
+const val MILLIS_15_MIN : Long = 1000 * 60 * 15
 
 @UnstableApi class MainActivity : AppCompatActivity() {
 
@@ -162,15 +169,25 @@ const val MIRROR_VIDEO = false
             action = "com.superpanic.momaplayer.SLEEP"
         }
         val sleepPendingIntent = PendingIntent.getBroadcast(this, 1, sleepIntent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        val sleepCalendar = getNextEvening()
-        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, sleepCalendar.timeInMillis, AlarmManager.INTERVAL_HALF_DAY, sleepPendingIntent)
 
-        /*
-        alarmManager.setInexactRepeating(int type,
-            long triggerAtMillis,
-            long intervalMillis,
-            PendingIntent operation)
-         */
+        var t : Int
+        val h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        
+        if( h >= WAKE_HOUR && h < SLEEP_HOUR ) {
+            t = SLEEP_HOUR
+        } else {
+            t = WAKE_HOUR
+        }
+
+        val sleepCalendar = getNextCalendar(t)
+
+        alarmManager.setWindow(
+            AlarmManager.RTC_WAKEUP,
+            sleepCalendar.timeInMillis,
+            MILLIS_15_MIN,
+            sleepPendingIntent
+        )
+
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val dateString = dateFormat.format(sleepCalendar.time)
         Log.d(TAG, "sleep: " + dateString)
@@ -210,7 +227,7 @@ const val MIRROR_VIDEO = false
             val targetSecond = 0
 
             if (currentHour >= targetHour) {
-                // If current time is past 22:30, set for the next day
+                // If current time is past SLEEP_HOUR, set for the next day
                 add(Calendar.DATE, 1)
             }
 
@@ -220,6 +237,44 @@ const val MIRROR_VIDEO = false
             set(Calendar.MILLISECOND, 0)
         }
         return eveningCalendar
+    }
+
+    public fun getNextMorning() : Calendar {
+        val morningCalender = Calendar.getInstance().apply {
+            val currentHour = get(Calendar.HOUR_OF_DAY)
+            val targetHour = WAKE_HOUR
+            val targetMinute = 0
+            val targetSecond = 0
+
+            if(currentHour >= targetHour) {
+                add(Calendar.DATE, 1)
+            }
+
+            set(Calendar.HOUR_OF_DAY, targetHour)
+            set(Calendar.MINUTE, targetMinute)
+            set(Calendar.SECOND, targetSecond)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return morningCalender
+    }
+
+    public fun getNextCalendar( t: Int ) : Calendar {
+        val nextCalendar = Calendar.getInstance().apply {
+            val currentHour = get(Calendar.HOUR_OF_DAY)
+            val targetHour = t
+            val targetMinute = 0
+            val targetSecond = 0
+
+            if(currentHour >= targetHour) {
+                add(Calendar.DATE, 1)
+            }
+
+            set(Calendar.HOUR_OF_DAY, targetHour)
+            set(Calendar.MINUTE, targetMinute)
+            set(Calendar.SECOND, targetSecond)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return nextCalendar
     }
 
     private fun getNextMinutes(m: Int, s: Int=0): Calendar {
@@ -666,6 +721,7 @@ const val MIRROR_VIDEO = false
     fun onAlarmEvent(event: AlarmEvent) {
         if(isEvening()) sleep()
         else wakeup()
+        setRecurringAlarm()
     }
 
 }
