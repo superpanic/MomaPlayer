@@ -184,7 +184,7 @@ const val MILLIS_15_MIN : Long = 1000 * 60 * 15
         alarmManager.setWindow(
             AlarmManager.RTC_WAKEUP,
             sleepCalendar.timeInMillis,
-            MILLIS_15_MIN,
+            MILLIS_30_MIN,
             sleepPendingIntent
         )
 
