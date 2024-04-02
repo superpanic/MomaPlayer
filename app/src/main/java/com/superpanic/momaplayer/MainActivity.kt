@@ -431,17 +431,23 @@ const val MILLIS_15_MIN : Long = 1000 * 60 * 15
                             ch1.add(mi)
                             d1.add(length)
                             l1=l1+length
-                        } // music video
-                        "do_" -> {
+                        } // advertising
+                        "us_" -> {
                             ch2.add(mi)
                             d2.add(length)
                             l2=l2+length
-                        } // documentary
+                        } // in use videos
+                        "do_" -> {
+                            ch3.add(mi)
+                            d3.add(length)
+                            l3=l3+length
+                        } // movies
                         "mu_" -> {
                             ch3.add(mi)
                             d3.add(length)
                             l3=l3+length
-                        } // advertising
+                        } // music videos
+
                     }
                 }
             } catch (e: Exception) {
@@ -536,6 +542,11 @@ const val MILLIS_15_MIN : Long = 1000 * 60 * 15
                             l2=l2+duration
                         }
                         "mu_" -> { // music videos
+                            ch2.add(mediaItem)
+                            d2.add(duration)
+                            l2=l2+duration
+                        }
+                        "us_" -> { // in use videos
                             ch3.add(mediaItem)
                             d3.add(duration)
                             l3=l3+duration
