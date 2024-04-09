@@ -51,11 +51,11 @@ const val TV1 : Int = 0
 const val TV2 : Int = 1
 const val TV3 : Int = 2
 
-const val WAKE_HOUR : Int = 7
-const val SLEEP_HOUR : Int = 19
+const val WAKE_HOUR : Int = 7 // + 30 minutes
+const val SLEEP_HOUR : Int = 19 // + 30 minutes
 
 const val BRIGHTNESS = 0.9f // 0.75 works fine!
-const val SOUND_LEVEL = 0.35f
+const val SOUND_LEVEL = 1.0f
 const val MIRROR_VIDEO = false
 
 const val MILLIS_30_MIN : Long = 1000 * 60 * 30
