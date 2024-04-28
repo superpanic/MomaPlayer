@@ -55,7 +55,7 @@ const val WAKE_HOUR : Int = 7 // + 30 minutes
 const val SLEEP_HOUR : Int = 19 // + 30 minutes
 
 const val BRIGHTNESS = 0.9f // 0.75 works fine!
-const val SOUND_LEVEL = 1.0f
+const val SOUND_LEVEL = 0.7f
 const val MIRROR_VIDEO = false
 
 const val MILLIS_30_MIN : Long = 1000 * 60 * 30
